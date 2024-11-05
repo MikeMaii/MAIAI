@@ -5,4 +5,5 @@ build/
 .github\
 .env
 test.py
+setup.py
 __pycache__/
