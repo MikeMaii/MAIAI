@@ -1,7 +1,7 @@
 
 # MAIAI (Multi-Agentic Instructor AI)
 
-This package provides tools to make building workflows with ChatGPT simple and efficient.
+This package provides tools to make building workflows with GPT models simple and efficient.
 
 ## Installation
 
@@ -112,4 +112,4 @@ print("Output:", output)
 
 ## Summary
 
-With MAIAI, you have a flexible and reliable way to interact with ChatGPT API, providing tools for moderation, retries, and even image processing. The `Task` and `Agent` classes allow to build robust Multi-Model Agentic Architectures with simple setups, enhancing productivity in AI-driven workflows.
+With MAIAI, you have a flexible and reliable way to interact with GPT models, providing tools for moderation, retries, and even image processing. The `Task` and `Agent` classes allow to build robust Multi-Model Agentic Architectures with simple setups, enhancing productivity in AI-driven workflows.
