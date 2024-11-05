@@ -4,3 +4,5 @@ MAIAI.egg-info/
 build/
 .github\
 .env
+test.py
+__pycache__/
