@@ -88,7 +88,7 @@ print("Output:", output)
 
     # Create a validation function that checks if "MAIAI" is in the output
     def contains_maiai(output):
-    return "MAIAI" in output
+        return "MAIAI" in output
 
     # Create a Task instance with the validation function
     task = Task(agent=agent, goal=goal, retries=3, validate=contains_maiai)
