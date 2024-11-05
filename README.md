@@ -79,7 +79,7 @@ print("Output:", output)
 1. **Retry Mechanism**:
    - Example to test the retry functionality with a function that may fail:
 
-     ```python
+    ```python
     # Initialize an agent
     agent = Agent(model="gpt-4o-mini", temperature=0.5, role="Retry Test Agent")
 
@@ -88,7 +88,7 @@ print("Output:", output)
 
     # Create a validation function that checks if "MAIAI" is in the output
     def contains_maiai(output):
-        return "MAIAI" in output
+    return "MAIAI" in output
 
     # Create a Task instance with the validation function
     task = Task(agent=agent, goal=goal, retries=3, validate=contains_maiai)
@@ -96,19 +96,19 @@ print("Output:", output)
     # Execute the task with retry if "MAIAI" is not in the response
     output = task.execute()
     print("Retry Test Output:", output)
-     ```
+    ```
 
 2. **Reading Images**:
    - Use the `read_image` method to process an image file:
 
-     ```python
-     image_path = "path/to/image.png"
-     image_task = Task(agent=agent, goal="Extract text from this image.")
+    ```python
+    image_path = "path/to/image.png"
+    image_task = Task(agent=agent, goal="Extract text from this image.")
 
-     # Get the response as text or JSON
-     output = image_task.read_image(image_path, json=False)
-     print("Image Output:", output)
-     ```
+    # Get the response as text or JSON
+    output = image_task.read_image(image_path, json=False)
+    print("Image Output:", output)
+    ```
 
 ## Summary
 
