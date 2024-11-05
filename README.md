@@ -1,7 +1,7 @@
 
-# MAIAI
+# MAIAI (Multi-Agentic Instructor AI)
 
-This package provides tools to make working with ChatGPT simple and efficient.
+This package provides tools to make building workflows with ChatGPT simple and efficient.
 
 ## Installation
 
