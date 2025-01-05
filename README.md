@@ -1,4 +1,3 @@
-
 # MAIAI (Multi-Agentic Instructor AI)
 
 This package provides tools to make building workflows with GPT models simple and efficient.
@@ -36,12 +35,13 @@ The `Task` class represents a task that an `Agent` can perform. It has the follo
 ### Task Methods
 
 1. **`execute`**: 
-   - Uses the `agent` to perform the task by sending the `goal` and `expected_output` to the OpenAI API.
-   - Returns the content of the completion from the API.
-   - Retries the API call if desired output is not obtained to combat hallucination and ensure reliability in AI generated content.
+   - Executes the main message of the task, optionally formatting the response as JSON.
+   - Returns the output of the task execution, in JSON format if `response_type` is "json", else as text.
+   - Includes retries and enhanced response handling.
 
-2. **`execute_clean`**:
-   - Similar to `execute`, but does not have any prompt injected, no expected output required.
+2. **`chat`**:
+   - Processes a chat session by formatting the chat history, appending system and user messages, and sending it to an API for a response.
+   - Supports retries and handles errors.
 
 3. **`retry`**:
    - Allows for automatic retries when performing a task if an error occurs.
@@ -69,14 +69,23 @@ agent = Agent(model="gpt-4o-mini", temperature=0.5, role="Translate text from En
 task = Task(agent=agent, goal="Hello world!", expected_output="French Sentence")
 
 # Execute the task
-output = task.execute_clean()
+output = task.execute()
 print("Output:", output)
-
 ```
 
 ### Using Additional Features
 
-1. **Retry Mechanism**:
+1. **Chat Functionality**:
+   - Example to utilize the `chat` method with a session history:
+
+    ```python
+    chat_history = [("Hello", "Hi, how can I help you?"), ("What's your name?", "I am MAIAI.")]
+    task = Task(agent=agent, goal="What's the weather today?")
+    output = task.chat(chat_history)
+    print("Chat Output:", output)
+    ```
+
+2. **Retry Mechanism**:
    - Example to test the retry functionality with a function that may fail:
 
     ```python
@@ -98,7 +107,7 @@ print("Output:", output)
     print("Retry Test Output:", output)
     ```
 
-2. **Reading Images**:
+3. **Reading Images**:
    - Use the `read_image` method to process an image file:
 
     ```python
@@ -112,4 +121,4 @@ print("Output:", output)
 
 ## Summary
 
-With MAIAI, you have a flexible and reliable way to interact with GPT models, providing tools for moderation, retries, and even image processing. The `Task` and `Agent` classes allow to build robust Multi-Model Agentic Architectures with simple setups, enhancing productivity in AI-driven workflows.
+With MAIAI, you have a flexible and reliable way to interact with GPT models, providing tools for moderation, retries, and even image processing. The `Task` and `Agent` classes allow building robust Multi-Model Agentic Architectures with simple setups, enhancing productivity in AI-driven workflows.

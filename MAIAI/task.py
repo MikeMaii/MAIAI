@@ -5,31 +5,31 @@ from .moderation import moderation_check
 
 class Task:
     """
-    A class representing a task to be executed by an AI agent. Supports goals with retries, validation, and 
+    A class representing a task to be executed by an AI agent. Supports messages with retries, validation, and 
     response handling (text or JSON). It includes image processing functionality where images are read and sent 
     for API processing.
     
     Attributes:
         agent (Agent): The agent used to execute the task.
-        goal (str): The primary goal or objective of the task.
+        message (str): The primary message or objective of the task.
         expected_output (str): Expected format of the output (optional).
         retries (int): Number of retries allowed for task execution (default is 3).
         validate (function): A validation function to check output (optional).
     """
 
-    def __init__(self, agent: Agent, goal: str, expected_output: str = "", retries: int = 3, validate=None):
+    def __init__(self, agent: Agent, message: str, expected_output: str = "", retries: int = 3, validate=None):
         """
-        Initializes the Task with an agent, goal, and optional parameters for output format, retries, and validation.
+        Initializes the Task with an agent, message, and optional parameters for output format, retries, and validation.
 
         Args:
             agent (Agent): The agent used to execute the task.
-            goal (str): The objective or goal for the task.
+            message (str): The objective or message for the task.
             expected_output (str): Expected format of the task output (default is an empty string).
             retries (int): Number of retries allowed for execution (default is 3).
             validate (function): A function to validate the output; returns True if valid, False otherwise.
         """
         self.agent = agent
-        self.goal = goal
+        self.message = message
         self.expected_output = expected_output
         self.retries = retries
         self.validate = validate
@@ -78,7 +78,7 @@ class Task:
         Returns:
             str or dict: The API response; JSON data if `json` is True, otherwise a string response.
         """
-        moderation_check(self.goal)  # Check moderation before making the API call
+        moderation_check(self.message)  # Check moderation before making the API call
 
         def encode_image(image_path):
             with open(image_path, "rb") as image_file:
@@ -94,7 +94,7 @@ class Task:
                         {
                             "role": "user",
                             "content": [
-                                {"type": "text", "text": f"""{self.goal}
+                                {"type": "text", "text": f"""{self.message}
                                 Return JSON document with all text in the receipt. Only return JSON not other text."""},
                                 {
                                     "type": "image_url",
@@ -117,7 +117,7 @@ class Task:
                         {
                             "role": "user",
                             "content": [
-                                {"type": "text", "text": f"""{self.goal}"""},
+                                {"type": "text", "text": f"""{self.message}"""},
                                 {
                                     "type": "image_url",
                                     "image_url": {
@@ -135,7 +135,7 @@ class Task:
 
     def execute(self, response_type: str = None):
         """
-        Executes the main goal of the task, optionally formatting the response as JSON.
+        Executes the main message of the task, optionally formatting the response as JSON.
 
         Args:
             response_type (str): Type of response format; if 'json', the response is parsed as JSON (default is None).
@@ -143,18 +143,32 @@ class Task:
         Returns:
             str or dict: The output of the task execution, in JSON format if `response_type` is "json", else as text.
         """
-        moderation_check(self.goal)  # Check moderation before making the API call
-
+        moderation_check(self.message)  # Check moderation before making the API call
+        
         def process_execution():
+            try:
+                completion = client.chat.completions.create(
+                    model=self.agent.model,
+                    temperature=self.agent.temperature,
+                    messages=[
+                        {"role": "developer", "content": f"{self.agent.role}"}, 
+                        {"role": "user", "content": f"""{self.message}"""}
+                    ]
+                )
+                return completion.choices[0].message.content
+            except Exception as e:
+                return f"An error occurred: {str(e)}"
+
+        def process_formatted_execution():
             if response_type == "json":
                 completion = client.chat.completions.create(
                     model=self.agent.model,
                     temperature=self.agent.temperature,
                     response_format={"type": "json_object"},
                     messages=[
-                        {"role": "system", "content": f"{self.agent.role}"}, 
-                        {"role": "user", "content": f"""You MUST give your response as json in the following format: {self.expected_output}. 
-                        {self.goal}"""}
+                        {"role": "developer", "content": f"""{self.agent.role}
+You MUST give your response as json in the following format: {self.expected_output}"""}, 
+                        {"role": "user", "content": f"""{self.message}"""}
                     ]
                 )
                 output = json.loads(completion.choices[0].message.content)
@@ -164,38 +178,71 @@ class Task:
                     model=self.agent.model,
                     temperature=self.agent.temperature,
                     messages=[
-                        {"role": "system", "content": f"{self.agent.role}"}, 
-                        {"role": "user", "content": f"""You MUST give your response as {self.expected_output}. 
-                        {self.goal}"""}
+                        {"role": "developer", "content": f"""{self.agent.role}
+You MUST give your response as {self.expected_output}"""}, 
+                        {"role": "user", "content": f"""{self.message}"""}
                     ]
                 )
                 return completion.choices[0].message.content
         
-        return self.retry(process_execution)
-
-    def execute_clean(self):
+        if self.expected_output == "" and response_type == None:
+            return self.retry(process_execution)
+        else:
+            return self.retry(process_formatted_execution)
+    
+    def chat(self, chat_history):
+        
         """
-        Executes the goal of the task without requiring validation, but with retry logic and moderation checks.
-        Moderation check is run on the input goal before each attempt of execution. Any exceptions encountered during 
-        execution are handled and returned as part of the output.
+        Processes a chat session by formatting the chat history, appending system and user messages, 
+        and sending it to an API for a response. Supports retries and handles errors.
+
+        Args:
+            chat_history (list): List of (user_message, assistant_response) tuples.
 
         Returns:
-            str: The output of the task execution, or an error message if execution fails after retries.
+            str: The assistant's response or an error message.
         """
-        moderation_check(self.goal)  # Check moderation before making the API call
-
-        def process_clean_execution():
+        
+        moderation_check(self.message)  # Check moderation before making the API call
+        
+        def process_chat():
             try:
+                # Reformat the history into the new required structure
+                message = []
+                for turn in chat_history:
+                    if turn[0] is not None:
+                        message.append({
+                            "role": "user",
+                            "content": [{"type": "text", "text": turn[0]}]
+                        })
+                    if turn[1] is not None:
+                        message.append({
+                            "role": "assistant",
+                            "content": [{"type": "text", "text": turn[1]}]
+                        })
+                
+                # Add the initial role and instruction as a system message
+                message.insert(0, {
+                    "role": "developer",
+                    "content": [{"type": "text", "text": f"{self.agent.role}"}]
+                })
+                
+                # Append the current user response at the end
+                message.append({
+                    "role": "user",
+                    "content": [{"type": "text", "text": self.message}]
+                })
+                
+                print(message)
+
+                # Make the API call
                 completion = client.chat.completions.create(
                     model=self.agent.model,
                     temperature=self.agent.temperature,
-                    messages=[
-                        {"role": "system", "content": f"{self.agent.role}"}, 
-                        {"role": "user", "content": f"""{self.goal}"""}
-                    ]
+                    messages=message
                 )
                 return completion.choices[0].message.content
             except Exception as e:
                 return f"An error occurred: {str(e)}"
-        
-        return self.retry(process_clean_execution)
+
+        return self.retry(process_chat)
