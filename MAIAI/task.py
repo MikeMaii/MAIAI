@@ -191,58 +191,45 @@ You MUST give your response as {self.expected_output}"""},
             return self.retry(process_formatted_execution)
     
     def chat(self, chat_history):
-        
-        """
-        Processes a chat session by formatting the chat history, appending system and user messages, 
-        and sending it to an API for a response. Supports retries and handles errors.
 
-        Args:
-            chat_history (list): List of (user_message, assistant_response) tuples.
+            def process_chat():
+                try:
+                    # Reformat the history into the new required structure
+                    message = []
+                    for turn in chat_history:
+                        if turn[0] is not None:
+                            message.append({
+                                "role": "user",
+                                "content": turn[0]
+                            })
+                        if turn[1] is not None:
+                            message.append({
+                                "role": "assistant",
+                                "content": turn[1]
+                            })
+                    
+                    # Add the initial role and instruction as a system message
+                    message.insert(0, {
+                        "role": "developer",
+                        "content": self.agent.role
+                    })
+                    
+                    # Append the current user response at the end
+                    message.append({
+                        "role": "user",
+                        "content": self.message
+                    })
+                    
+                    print(message)
 
-        Returns:
-            str: The assistant's response or an error message.
-        """
-        
-        moderation_check(self.message)  # Check moderation before making the API call
-        
-        def process_chat():
-            try:
-                # Reformat the history into the new required structure
-                message = []
-                for turn in chat_history:
-                    if turn[0] is not None:
-                        message.append({
-                            "role": "user",
-                            "content": [{"type": "text", "text": turn[0]}]
-                        })
-                    if turn[1] is not None:
-                        message.append({
-                            "role": "assistant",
-                            "content": [{"type": "text", "text": turn[1]}]
-                        })
-                
-                # Add the initial role and instruction as a system message
-                message.insert(0, {
-                    "role": "developer",
-                    "content": [{"type": "text", "text": f"{self.agent.role}"}]
-                })
-                
-                # Append the current user response at the end
-                message.append({
-                    "role": "user",
-                    "content": [{"type": "text", "text": self.message}]
-                })
-                
-                print(message)
+                    # Make the API call
+                    completion = client.chat.completions.create(
+                        model=self.agent.model,
+                        temperature=self.agent.temperature,
+                        messages=message
+                    )
+                    return completion.choices[0].message.content
+                except Exception as e:
+                    return f"An error occurred: {str(e)}"
 
-                # Make the API call
-                completion = client.chat.completions.create(
-                    model=self.agent.model,
-                    temperature=self.agent.temperature,
-                    messages=message
-                )
-                return completion.choices[0].message.content
-            except Exception as e:
-                return f"An error occurred: {str(e)}"
-
-        return self.retry(process_chat)
+            return self.retry(process_chat)
